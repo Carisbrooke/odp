@@ -1227,7 +1227,7 @@ static int dpdk_pktio_term(void)
 {
 	if (!dpdk_initialized)
 		return 0;
-
+/*
 #if RTE_VERSION >= RTE_VERSION_NUM(17, 8, 0, 0)
 	uint16_t port_id;
 
@@ -1235,6 +1235,7 @@ static int dpdk_pktio_term(void)
 		rte_eth_dev_close(port_id);
 	}
 #endif
+*/
 
 	if (!ODP_DPDK_ZERO_COPY)
 		rte_mempool_walk(dpdk_mempool_free, NULL);
@@ -1563,6 +1564,10 @@ static int dpdk_start(pktio_entry_t *pktio_entry)
 	rte_eth_dev_info_get(port_id, &dev_info);
 	rxconf = &dev_info.default_rxconf;
 	rxconf->rx_drop_en = pkt_dpdk->opt.rx_drop_en;
+
+	//repu1sion. enable HW timestamps
+	rxconf->offloads |= DEV_RX_OFFLOAD_TIMESTAMP;
+
 	for (i = 0; i < pktio_entry->s.num_in_queue; i++) {
 		ret = rte_eth_rx_queue_setup(port_id, i,
 					     pkt_dpdk->opt.num_rx_desc,
