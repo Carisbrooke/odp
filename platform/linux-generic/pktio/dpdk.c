@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include <odp/api/cpumask.h>
 
@@ -1498,6 +1499,8 @@ static int dpdk_start(pktio_entry_t *pktio_entry)
 	uint16_t port_id = pkt_dpdk->port_id;
 	int ret;
 	unsigned i;
+	char *env;
+	int enable_hw_timestamps = 0;
 
 	/* DPDK doesn't support nb_rx_q/nb_tx_q being 0 */
 	if (!pktio_entry->s.num_in_queue)
@@ -1566,7 +1569,27 @@ static int dpdk_start(pktio_entry_t *pktio_entry)
 	rxconf->rx_drop_en = pkt_dpdk->opt.rx_drop_en;
 
 	//repu1sion. enable HW timestamps
-	rxconf->offloads |= DEV_RX_OFFLOAD_TIMESTAMP;
+	env = getenv("ODP_HW_TIMESTAMPS");
+	if (env)
+	{
+		enable_hw_timestamps = atoi(env);
+		if (enable_hw_timestamps)
+		{
+			rxconf->offloads |= DEV_RX_OFFLOAD_TIMESTAMP;
+			ODP_PRINT("PKTIO: enabling dpdk hardware timestamps\n");
+		}
+		else
+		{
+			rxconf->offloads &= ~DEV_RX_OFFLOAD_TIMESTAMP;
+			ODP_PRINT("PKTIO: disabling dpdk hardware timestamps\n");
+		}
+	}
+	else
+	{
+		enable_hw_timestamps = rxconf->offloads & DEV_RX_OFFLOAD_TIMESTAMP; 	
+		ODP_PRINT("PKTIO: var ODP_HW_TIMESTAMPS not set. HW timestamps are %s\n",
+			  enable_hw_timestamps ? "enabled" : "disabled");
+	}
 
 	for (i = 0; i < pktio_entry->s.num_in_queue; i++) {
 		ret = rte_eth_rx_queue_setup(port_id, i,
