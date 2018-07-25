@@ -525,6 +525,7 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 			goto fail;
 		}
 
+		//XXX - A macro that points to the start of the data in the mbuf
 		data = rte_pktmbuf_mtod(mbuf, char *);
 		odp_prefetch(data);
 
@@ -542,6 +543,7 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 		pkt_hdr = packet_hdr(pkt);
 		pull_tail(pkt_hdr, alloc_len - pkt_len);
 
+		//XXX - here we copy the mbuf into odp packet (memcpy() inside)
 		if (_odp_packet_copy_from_mem(pkt, 0, pkt_len, data) != 0)
 			goto fail;
 
@@ -555,7 +557,21 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 		if (mbuf->ol_flags & PKT_RX_RSS_HASH)
 			packet_set_flow_hash(pkt_hdr, mbuf->hash.rss);
 
-		packet_set_ts(pkt_hdr, ts);
+		//XXX - setting timestamp for odp packet here
+		//packet_set_ts(pkt_hdr, ts);
+
+		//repu1sion experimental code
+		printf("mbuf timestamp: %lu \n", mbuf->timestamp);
+
+		odp_time_t t;
+		memset(&t, 0x0, sizeof(t));
+		t.u64 = mbuf->timestamp;
+		packet_set_ts(pkt_hdr, &t);
+		ts = ts;
+
+		//uint64_t dpdk_ts = mbuf->timestamp;
+		//ts->u64 = dpdk_ts;
+		//packet_set_ts(pkt_hdr, ts);
 
 		if (pktin_cfg->all_bits & PKTIN_CSUM_BITS) {
 			if (pkt_set_ol_rx(pktin_cfg, pkt_hdr, mbuf)) {
@@ -1042,6 +1058,9 @@ static int dpdk_setup_port(pktio_entry_t *pktio_entry)
 			.hw_vlan_filter = 0,
 			.hw_strip_crc   = 0,
 			.enable_scatter = 0,
+			.hw_timestamp = 1,
+			.ignore_offload_bitfield = 0,
+			
 		},
 		.rx_adv_conf = {
 			.rss_conf = rss_conf,
