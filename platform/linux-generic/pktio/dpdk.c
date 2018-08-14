@@ -561,7 +561,7 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 		//packet_set_ts(pkt_hdr, ts);
 
 		//repu1sion experimental code
-		printf("mbuf timestamp: %lu \n", mbuf->timestamp);
+		//printf("mbuf timestamp: %lu \n", mbuf->timestamp);
 
 		odp_time_t t;
 		memset(&t, 0x0, sizeof(t));
